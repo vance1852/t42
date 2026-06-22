@@ -7,19 +7,25 @@ from lunar_lander.strategies import (
 )
 
 
-def test_constant_decel_basic():
+def test_constant_decel_braking_when_falling():
     strat = ConstantDecelerationStrategy(max_thrust=30000.0, gravity=1.62, mass_dry=1000.0, target_decel=2.0)
     mass = 1500.0
     thrust = strat.compute_thrust(altitude=1000.0, velocity=-50.0, mass=mass, time=0.0)
-
-    expected = mass * (1.62 + 2.0)
-    assert abs(thrust - expected) < 1e-9
-    assert 0 <= thrust <= 30000.0
+    assert thrust > mass * 1.62
+    assert thrust <= 30000.0
 
 
-def test_constant_decel_positive_velocity_no_thrust():
-    strat = ConstantDecelerationStrategy(max_thrust=30000.0, gravity=1.62, mass_dry=1000.0)
-    thrust = strat.compute_thrust(altitude=1000.0, velocity=10.0, mass=1500.0, time=0.0)
+def test_constant_decel_reduces_thrust_when_above_target():
+    strat = ConstantDecelerationStrategy(max_thrust=30000.0, gravity=1.62, mass_dry=1000.0, target_decel=2.0)
+    mass = 1500.0
+    thrust_rising = strat.compute_thrust(altitude=400.0, velocity=5.0, mass=mass, time=0.0)
+    hover = mass * 1.62
+    assert thrust_rising < hover
+
+
+def test_constant_decel_zero_thrust_on_ground():
+    strat = ConstantDecelerationStrategy(max_thrust=30000.0, gravity=1.62, mass_dry=1000.0, target_decel=2.0)
+    thrust = strat.compute_thrust(altitude=0.0, velocity=-5.0, mass=1500.0, time=0.0)
     assert thrust == 0.0
 
 
@@ -29,55 +35,48 @@ def test_constant_decel_clamped_to_max():
     assert thrust == 1000.0
 
 
-def test_staged_braking_high_alt():
+def test_staged_braking_increases_thrust_at_low_alt():
     strat = StagedBrakingStrategy(
         max_thrust=30000.0, gravity=1.62, mass_dry=1000.0,
-        high_altitude_thrust_pct=0.8, high_mid_threshold=1000.0,
+        high_altitude_thrust_pct=0.3, low_altitude_thrust_pct=0.7,
+        mid_low_threshold=200.0, final_burn_altitude=50.0, final_burn_thrust_pct=0.95,
     )
-    thrust = strat.compute_thrust(altitude=1500.0, velocity=-50.0, mass=1500.0, time=0.0)
-    assert abs(thrust - 0.8 * 30000.0) < 1e-9
+    thrust_high = strat.compute_thrust(altitude=1500.0, velocity=-30.0, mass=1500.0, time=0.0)
+    thrust_low = strat.compute_thrust(altitude=100.0, velocity=-10.0, mass=1500.0, time=0.0)
+    assert thrust_low > thrust_high
 
 
-def test_staged_braking_low_alt():
-    strat = StagedBrakingStrategy(
-        max_thrust=30000.0, gravity=1.62, mass_dry=1000.0,
-        low_altitude_thrust_pct=0.4, mid_low_threshold=200.0,
-        final_burn_altitude=50.0,
-    )
-    thrust = strat.compute_thrust(altitude=100.0, velocity=-20.0, mass=1500.0, time=0.0)
-    assert abs(thrust - 0.4 * 30000.0) < 1e-9
+def test_staged_braking_zero_on_ground():
+    strat = StagedBrakingStrategy(max_thrust=30000.0, gravity=1.62, mass_dry=1000.0)
+    thrust = strat.compute_thrust(altitude=0.0, velocity=-5.0, mass=1500.0, time=0.0)
+    assert thrust == 0.0
 
 
-def test_staged_braking_final_burn():
-    strat = StagedBrakingStrategy(
-        max_thrust=30000.0, gravity=1.62, mass_dry=1000.0,
-        final_burn_altitude=50.0, final_burn_thrust_pct=0.9,
-    )
-    thrust = strat.compute_thrust(altitude=30.0, velocity=-10.0, mass=1500.0, time=0.0)
-    assert abs(thrust - 0.9 * 30000.0) < 1e-9
-
-
-def test_pid_basic():
-    strat = PIDStrategy(max_thrust=30000.0, gravity=1.62, mass_dry=1000.0, kp=0.5, ki=0.0, kd=0.0)
-    mass = 1500.0
-    thrust = strat.compute_thrust(altitude=1000.0, velocity=-10.0, mass=mass, time=0.0)
-    assert thrust >= 0
-    assert thrust <= 30000.0
+def test_pid_output_bounded():
+    strat = PIDStrategy(max_thrust=30000.0, gravity=1.62, mass_dry=1000.0, kp=1.5, ki=0.05, kd=0.3)
+    for v in [-30, -10, -5, 0, 5]:
+        thrust = strat.compute_thrust(altitude=500.0, velocity=v, mass=1500.0, time=0.0)
+        assert 0 <= thrust <= 30000.0
 
 
 def test_pid_reset_clears_integral():
-    strat = PIDStrategy(max_thrust=30000.0, gravity=1.62, mass_dry=1000.0, kp=0.0, ki=1.0, kd=0.0)
+    strat = PIDStrategy(max_thrust=30000.0, gravity=1.62, mass_dry=1000.0, kp=0.3, ki=1.0, kd=0.1)
 
-    for _ in range(100):
-        strat.compute_thrust(altitude=1000.0, velocity=-10.0, mass=1500.0, time=0.0)
+    for _ in range(50):
+        strat.compute_thrust(altitude=200.0, velocity=-35.0, mass=1500.0, time=0.0)
 
-    thrust_before_reset = strat.compute_thrust(altitude=1000.0, velocity=-10.0, mass=1500.0, time=0.0)
+    thrust_before = strat.compute_thrust(altitude=200.0, velocity=-35.0, mass=1500.0, time=0.0)
 
     strat.reset()
 
-    thrust_after_reset = strat.compute_thrust(altitude=1000.0, velocity=-10.0, mass=1500.0, time=0.0)
+    thrust_after = strat.compute_thrust(altitude=200.0, velocity=-35.0, mass=1500.0, time=0.0)
+    assert abs(thrust_after - thrust_before) > 1.0
 
-    assert thrust_after_reset != thrust_before_reset
+
+def test_pid_zero_on_ground():
+    strat = PIDStrategy(max_thrust=30000.0, gravity=1.62, mass_dry=1000.0)
+    thrust = strat.compute_thrust(altitude=0.0, velocity=-5.0, mass=1500.0, time=0.0)
+    assert thrust == 0.0
 
 
 def test_create_strategy_invalid():

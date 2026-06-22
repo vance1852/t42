@@ -7,6 +7,7 @@ from .strategies import (
     PIDStrategy,
     create_strategy,
 )
+from .parameter_scan import BestStrategyResult
 
 __all__ = [
     "LanderConfig",
@@ -19,4 +20,5 @@ __all__ = [
     "StagedBrakingStrategy",
     "PIDStrategy",
     "create_strategy",
+    "BestStrategyResult",
 ]

@@ -176,10 +176,14 @@ class LanderSimulator:
 
             if over_thrust_requested and status is None:
                 status = LandingStatus.OVER_THRUST_REQUEST
+                break
 
             if altitude <= config.target_altitude:
                 if velocity < config.hard_landing_velocity:
-                    status = LandingStatus.HARD_LANDING
+                    if thrust_command > mass * config.gravity * 1.5:
+                        status = LandingStatus.PREMATURE_TOUCHDOWN
+                    else:
+                        status = LandingStatus.HARD_LANDING
                 else:
                     if status is None:
                         status = LandingStatus.SOFT_LANDING

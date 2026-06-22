@@ -173,7 +173,7 @@ def run_find_best(args):
             "kp": [kp_start + i * kp_step for i in range(int((kp_end - kp_start) / kp_step) + 1)],
         }
 
-    best_strategy, best_params, best_result = find_best_strategy(
+    best = find_best_strategy(
         base_config=config,
         strategy_names=strategies,
         strategy_param_ranges=param_ranges,
@@ -181,15 +181,21 @@ def run_find_best(args):
         baseline_params=strategy_params.get(args.baseline, {}),
     )
 
-    print(f"最佳策略: {best_strategy}")
-    print(f"最佳参数: {best_params}")
-    print(f"状态: {best_result.status.description}")
-    print(f"综合评分: {best_result.score.overall_score:.2f}/100")
-    print(f"飞行时间: {best_result.flight_time:.2f} s")
-    print(f"燃料消耗: {best_result.fuel_used:.2f} kg")
+    print(f"基线策略: {best.baseline_strategy} (评分: {best.baseline_score:.2f})")
+    print(f"最佳策略: {best.strategy_name}")
+    print(f"最佳参数: {best.params}")
+    print(f"状态: {best.result.status.description}")
+    print(f"综合评分: {best.best_score:.2f}/100")
+    print(f"飞行时间: {best.result.flight_time:.2f} s")
+    print(f"燃料消耗: {best.result.fuel_used:.2f} kg")
+
+    if best.improved_over_baseline:
+        print(f"✓ 找到优于基线的方案! 评分从 {best.baseline_score:.2f} 提升到 {best.best_score:.2f}")
+    else:
+        print(f"✗ 未找到优于基线 ({best.baseline_strategy}, 评分 {best.baseline_score:.2f}) 的改进方案")
 
     if args.csv:
-        save_trajectory_csv(best_result, args.csv)
+        save_trajectory_csv(best.result, args.csv)
         print(f"轨迹已保存到: {args.csv}")
 
 

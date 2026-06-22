@@ -14,7 +14,7 @@ def test_landing_status_descriptions():
         assert len(status.description) > 0
 
 
-def test_score_success_full_marks():
+def test_score_success_produces_nonzero_overall():
     scorer = Scorer(soft_landing_velocity=-2.0, max_fuel_mass=500.0, target_altitude=0.0)
     result = scorer.compute_score(
         status=LandingStatus.SOFT_LANDING,
@@ -26,7 +26,7 @@ def test_score_success_full_marks():
         max_available_thrust=30000.0,
     )
 
-    assert result.overall_score > 0
+    assert result.overall_score > 0, "Soft landing must produce nonzero overall score"
     assert result.fuel_efficiency == 100.0
     assert result.landing_accuracy == 100.0
     assert result.landing_smoothness == 100.0

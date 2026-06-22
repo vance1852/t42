@@ -24,6 +24,19 @@ class ControlStrategy(ABC):
     def reset(self):
         pass
 
+    def _target_velocity(self, altitude: float) -> float:
+        if altitude <= 0:
+            return 0.0
+        if altitude > 100:
+            v_max = -np.sqrt(2.0 * 3.0 * altitude)
+            return float(max(v_max, -30.0))
+        elif altitude > 10:
+            return float(-min(altitude * 0.15, 3.0))
+        elif altitude > 1:
+            return -1.0
+        else:
+            return -0.5
+
 
 class ConstantDecelerationStrategy(ControlStrategy):
     name = "constant_decel"
@@ -39,11 +52,23 @@ class ConstantDecelerationStrategy(ControlStrategy):
         mass: float,
         time: float,
     ) -> float:
-        if velocity >= 0:
+        if altitude <= 0:
             return 0.0
 
-        required_thrust = mass * (self.gravity + self.target_decel)
-        return np.clip(required_thrust, 0.0, self.max_thrust)
+        target_v = self._target_velocity(altitude)
+
+        if velocity <= target_v:
+            needed_decel = 0.3
+            if velocity < 0 and altitude > 0:
+                v_sq = velocity * velocity
+                needed_decel = v_sq / (2.0 * altitude) + 0.3
+            decel = max(self.target_decel, needed_decel)
+            thrust = mass * (self.gravity + decel)
+        else:
+            accel_needed = (velocity - target_v) * 2.0
+            thrust = mass * (self.gravity - accel_needed)
+
+        return float(np.clip(thrust, 0.0, self.max_thrust))
 
 
 class StagedBrakingStrategy(ControlStrategy):
@@ -54,13 +79,13 @@ class StagedBrakingStrategy(ControlStrategy):
         max_thrust: float,
         gravity: float,
         mass_dry: float,
-        high_altitude_thrust_pct: float = 0.8,
-        mid_altitude_thrust_pct: float = 0.6,
-        low_altitude_thrust_pct: float = 0.4,
+        high_altitude_thrust_pct: float = 0.3,
+        mid_altitude_thrust_pct: float = 0.5,
+        low_altitude_thrust_pct: float = 0.7,
         high_mid_threshold: float = 1000.0,
         mid_low_threshold: float = 200.0,
         final_burn_altitude: float = 50.0,
-        final_burn_thrust_pct: float = 0.9,
+        final_burn_thrust_pct: float = 0.95,
         **kwargs,
     ):
         super().__init__(max_thrust, gravity, mass_dry, **kwargs)
@@ -79,19 +104,33 @@ class StagedBrakingStrategy(ControlStrategy):
         mass: float,
         time: float,
     ) -> float:
-        if velocity >= 0:
+        if altitude <= 0:
             return 0.0
 
-        if altitude > self.high_mid_threshold:
-            thrust_pct = self.high_altitude_thrust_pct
-        elif altitude > self.mid_low_threshold:
-            thrust_pct = self.mid_altitude_thrust_pct
-        elif altitude > self.final_burn_altitude:
-            thrust_pct = self.low_altitude_thrust_pct
-        else:
-            thrust_pct = self.final_burn_thrust_pct
+        target_v = self._target_velocity(altitude)
 
-        return thrust_pct * self.max_thrust
+        if altitude > self.high_mid_threshold:
+            pct = self.high_altitude_thrust_pct
+        elif altitude > self.mid_low_threshold:
+            pct = self.mid_altitude_thrust_pct
+        elif altitude > self.final_burn_altitude:
+            pct = self.low_altitude_thrust_pct
+        else:
+            pct = self.final_burn_thrust_pct
+
+        if velocity < target_v:
+            if velocity < 0 and altitude > 0:
+                v_sq = velocity * velocity
+                needed = v_sq / (2.0 * altitude) + 0.2
+                urgency = min(1.0, needed / 5.0)
+                pct = pct + urgency * (1.0 - pct)
+            thrust = pct * self.max_thrust
+        else:
+            excess = velocity - target_v
+            descent_accel = min(excess * 1.5, 2.0)
+            thrust = mass * (self.gravity - descent_accel)
+
+        return float(np.clip(thrust, 0.0, self.max_thrust))
 
 
 class PIDStrategy(ControlStrategy):
@@ -102,11 +141,11 @@ class PIDStrategy(ControlStrategy):
         max_thrust: float,
         gravity: float,
         mass_dry: float,
-        kp: float = 0.5,
-        ki: float = 0.001,
-        kd: float = 2.0,
-        target_velocity: float = -1.0,
-        integral_limit: float = 10000.0,
+        kp: float = 1.5,
+        ki: float = 0.05,
+        kd: float = 0.3,
+        target_velocity: float = -2.0,
+        integral_limit: float = 100.0,
         **kwargs,
     ):
         super().__init__(max_thrust, gravity, mass_dry, **kwargs)
@@ -129,10 +168,14 @@ class PIDStrategy(ControlStrategy):
         mass: float,
         time: float,
     ) -> float:
-        error = self.target_velocity - velocity
+        if altitude <= 0:
+            return 0.0
+
+        target_vel = self._target_velocity(altitude)
+        error = target_vel - velocity
 
         self._integral += error
-        self._integral = np.clip(self._integral, -self.integral_limit, self.integral_limit)
+        self._integral = float(np.clip(self._integral, -self.integral_limit, self.integral_limit))
 
         if self._prev_error is not None:
             derivative = error - self._prev_error
@@ -140,12 +183,11 @@ class PIDStrategy(ControlStrategy):
             derivative = 0.0
         self._prev_error = error
 
-        output = self.kp * error + self.ki * self._integral + self.kd * derivative
+        accel_cmd = self.kp * error + self.ki * self._integral + self.kd * derivative
 
-        gravity_compensation = mass * self.gravity
-        thrust = gravity_compensation + output
+        thrust = mass * (self.gravity + accel_cmd)
 
-        return np.clip(thrust, 0.0, self.max_thrust)
+        return float(np.clip(thrust, 0.0, self.max_thrust))
 
 
 def create_strategy(strategy_name: str, max_thrust: float, gravity: float, mass_dry: float, **kwargs) -> ControlStrategy:

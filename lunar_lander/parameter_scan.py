@@ -1,6 +1,7 @@
 import itertools
 import numpy as np
-from typing import Dict, Any, List, Tuple, Callable
+from dataclasses import dataclass
+from typing import Dict, Any, List, Tuple, Optional
 
 from .config import LanderConfig
 from .simulator import LanderSimulator, SimulationResult
@@ -45,13 +46,24 @@ def parameter_scan(
     return results
 
 
+@dataclass
+class BestStrategyResult:
+    strategy_name: str
+    params: Dict[str, Any]
+    result: SimulationResult
+    improved_over_baseline: bool
+    baseline_strategy: str
+    baseline_score: float
+    best_score: float
+
+
 def find_best_strategy(
     base_config: LanderConfig,
     strategy_names: List[str],
     strategy_param_ranges: Dict[str, Dict[str, List[float]]] = None,
     baseline_strategy: str = "constant_decel",
     baseline_params: Dict[str, Any] = None,
-) -> Tuple[str, Dict[str, Any], SimulationResult]:
+) -> BestStrategyResult:
     if strategy_param_ranges is None:
         strategy_param_ranges = {}
     if baseline_params is None:
@@ -105,4 +117,14 @@ def find_best_strategy(
                     best_params = params
                     best_result = result
 
-    return best_strategy, best_params, best_result
+    improved = bool(best_score > baseline_score)
+
+    return BestStrategyResult(
+        strategy_name=best_strategy,
+        params=best_params,
+        result=best_result,
+        improved_over_baseline=improved,
+        baseline_strategy=baseline_strategy,
+        baseline_score=baseline_score,
+        best_score=best_score,
+    )
