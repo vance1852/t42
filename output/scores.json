@@ -1,0 +1,50 @@
+[
+  {
+    "strategy": "constant_decel",
+    "status": "hover_too_long",
+    "status_description": "悬停时间过长",
+    "flight_time": 85.99000000000709,
+    "fuel_used": 67.03718815320985,
+    "final_altitude": 763.5651317100377,
+    "final_velocity": -0.1252444682201556,
+    "score": {
+      "overall": 0.0,
+      "fuel_efficiency": 0.0,
+      "landing_accuracy": 0.0,
+      "landing_smoothness": 0.0,
+      "time_efficiency": 0.0
+    }
+  },
+  {
+    "strategy": "staged_braking",
+    "status": "simulation_timeout",
+    "status_description": "模拟超时",
+    "flight_time": 200.00999999996307,
+    "fuel_used": 136.2629969418715,
+    "final_altitude": 1338.8528134004996,
+    "final_velocity": 0.7086262050492378,
+    "score": {
+      "overall": 0.0,
+      "fuel_efficiency": 0.0,
+      "landing_accuracy": 0.0,
+      "landing_smoothness": 0.0,
+      "time_efficiency": 0.0
+    }
+  },
+  {
+    "strategy": "pid",
+    "status": "hard_landing",
+    "status_description": "硬着陆（撞击速度过大）",
+    "flight_time": 33.26000000000195,
+    "fuel_used": 21.881383489609334,
+    "final_altitude": -0.007573393880043185,
+    "final_velocity": -29.72195902257682,
+    "score": {
+      "overall": 0.0,
+      "fuel_efficiency": 0.0,
+      "landing_accuracy": 0.0,
+      "landing_smoothness": 0.0,
+      "time_efficiency": 0.0
+    }
+  }
+]

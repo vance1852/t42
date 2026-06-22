@@ -1,0 +1,24 @@
+{
+  "name": "噪声偏大",
+  "description": "传感器噪声较大，需要良好的滤波和鲁棒控制",
+  "config": {
+    "mass_dry": 1000.0,
+    "mass_fuel_initial": 500.0,
+    "max_thrust": 30000.0,
+    "thrust_response_delay": 0.2,
+    "thrust_max_change_rate": 20000.0,
+    "gravity": 1.62,
+    "initial_altitude": 2000.0,
+    "initial_velocity": -50.0,
+    "dt": 0.01,
+    "altimeter_noise_std": 10.0,
+    "velocimeter_noise_std": 5.0,
+    "filter_alpha": 0.05,
+    "max_simulation_time": 300.0,
+    "hover_time_limit": 30.0,
+    "soft_landing_velocity": -3.0,
+    "hard_landing_velocity": -10.0,
+    "target_altitude": 0.0,
+    "random_seed": 42
+  }
+}

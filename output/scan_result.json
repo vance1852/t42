@@ -1,0 +1,52 @@
+[
+  {
+    "params": {
+      "target_decel": 1.0
+    },
+    "strategy": "constant_decel",
+    "status": "hover_too_long",
+    "score": 0.0,
+    "flight_time": 66.53999999999714,
+    "fuel_used": 54.91274077928915
+  },
+  {
+    "params": {
+      "target_decel": 2.0
+    },
+    "strategy": "constant_decel",
+    "status": "hover_too_long",
+    "score": 0.0,
+    "flight_time": 85.99000000000709,
+    "fuel_used": 67.03718815320985
+  },
+  {
+    "params": {
+      "target_decel": 3.0
+    },
+    "strategy": "constant_decel",
+    "status": "simulation_timeout",
+    "score": 0.0,
+    "flight_time": 200.00999999996307,
+    "fuel_used": 136.3600344891213
+  },
+  {
+    "params": {
+      "target_decel": 4.0
+    },
+    "strategy": "constant_decel",
+    "status": "simulation_timeout",
+    "score": 0.0,
+    "flight_time": 200.00999999996307,
+    "fuel_used": 136.0974139595653
+  },
+  {
+    "params": {
+      "target_decel": 5.0
+    },
+    "strategy": "constant_decel",
+    "status": "simulation_timeout",
+    "score": 0.0,
+    "flight_time": 200.00999999996307,
+    "fuel_used": 136.74614270760117
+  }
+]

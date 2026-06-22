@@ -1,0 +1,24 @@
+{
+  "name": "初速过大",
+  "description": "初始下落速度很大，需要强力减速",
+  "config": {
+    "mass_dry": 1000.0,
+    "mass_fuel_initial": 500.0,
+    "max_thrust": 45000.0,
+    "thrust_response_delay": 0.3,
+    "thrust_max_change_rate": 30000.0,
+    "gravity": 1.62,
+    "initial_altitude": 3000.0,
+    "initial_velocity": -100.0,
+    "dt": 0.01,
+    "altimeter_noise_std": 1.0,
+    "velocimeter_noise_std": 0.5,
+    "filter_alpha": 0.1,
+    "max_simulation_time": 200.0,
+    "hover_time_limit": 30.0,
+    "soft_landing_velocity": -2.0,
+    "hard_landing_velocity": -15.0,
+    "target_altitude": 0.0,
+    "random_seed": 42
+  }
+}
